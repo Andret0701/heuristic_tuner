@@ -61,7 +61,10 @@ BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
     double game_phase = 0.0;
 
     // Material counting
-    score += get_material_score(&board_state->board);
+    MaterialWeights material_weights = get_material_weights(&board_state->board);
+    score += calculate_material_score(material_weights,
+                                      DEFAULT_MIDDLEGAME_MATERIAL_WEIGHTS,
+                                      DEFAULT_ENDGAME_MATERIAL_WEIGHTS, game_phase);
 
     // Positional scoring
     score += get_position_score(&board_state->board);
