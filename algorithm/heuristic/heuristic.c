@@ -67,7 +67,10 @@ BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
                                       DEFAULT_ENDGAME_MATERIAL_WEIGHTS, game_phase);
 
     // Positional scoring
-    score += get_position_score(&board_state->board);
+    PieceSquareWeights piece_square_weights = get_piece_square_weights(&board_state->board);
+    score += calculate_piece_square_score(piece_square_weights,
+                                          get_default_middlegame_piece_square_weights(),
+                                          get_default_endgame_piece_square_weights(), game_phase);
 
     // King safety scoring
     KingSafetyWeights king_safety_weights = get_king_safety_weights(board_state);
