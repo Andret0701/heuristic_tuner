@@ -58,6 +58,7 @@ BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
 {
     double score = 0;
     Result result = get_result(board_state, is_finished);
+    double game_phase = 0.0;
 
     // Material counting
     score += get_material_score(&board_state->board);
@@ -66,7 +67,10 @@ BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
     score += get_position_score(&board_state->board);
 
     // King safety scoring
-    score += get_king_safety_score(board_state);
+    KingSafetyWeights king_safety_weights = get_king_safety_weights(board_state);
+    score += calculate_king_safety_score(king_safety_weights,
+                                         DEFAULT_MIDDLEGAME_KING_SAFETY_WEIGHTS,
+                                         DEFAULT_ENDGAME_KING_SAFETY_WEIGHTS, game_phase);
 
     // Pawn structure scoring
     score += get_pawn_structure_score(board_state);

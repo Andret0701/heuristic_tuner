@@ -1,13 +1,6 @@
 #include "king_safety_score.h"
 #include "../../utils/bitboard.h"
 
-#define CAN_CASTLE_KINGSIDE_BONUS 20
-#define CAN_CASTLE_QUEENSIDE_BONUS 15
-#define CAN_CASTLE_BOTH_SIDES_BONUS 25
-
-#define HAS_CASTLED_KINGSIDE_BONUS 30
-#define HAS_CASTLED_QUEENSIDE_BONUS 25
-
 int get_file(int square)
 {
     return square % 8;
@@ -23,42 +16,41 @@ int get_king_square(uint64_t king)
     return __builtin_ctzll(king);
 }
 
-double get_castling_score(BoardState *board_state)
+CastlingWeights get_castling_weights(BoardState *board_state)
 {
-    double score = 0;
+    CastlingWeights castling_weights = {0};
     Board *board = &board_state->board;
     if (((board->castling_rights & WHITE_KINGSIDE_CASTLE) != 0) && ((board->castling_rights & WHITE_QUEENSIDE_CASTLE) != 0))
-        score += CAN_CASTLE_BOTH_SIDES_BONUS;
+        castling_weights.both_sides++;
     else if ((board->castling_rights & WHITE_KINGSIDE_CASTLE) != 0)
-        score += CAN_CASTLE_KINGSIDE_BONUS;
+        castling_weights.kingside++;
     else if ((board->castling_rights & WHITE_QUEENSIDE_CASTLE) != 0)
-        score += CAN_CASTLE_QUEENSIDE_BONUS;
+        castling_weights.queenside++;
 
     if (((board->castling_rights & BLACK_KINGSIDE_CASTLE) != 0) && ((board->castling_rights & BLACK_QUEENSIDE_CASTLE) != 0))
-        score -= CAN_CASTLE_BOTH_SIDES_BONUS;
+        castling_weights.both_sides--;
     else if ((board->castling_rights & BLACK_KINGSIDE_CASTLE) != 0)
-        score -= CAN_CASTLE_KINGSIDE_BONUS;
+        castling_weights.kingside--;
     else if ((board->castling_rights & BLACK_QUEENSIDE_CASTLE) != 0)
-        score -= CAN_CASTLE_QUEENSIDE_BONUS;
+        castling_weights.queenside--;
 
     if (board_state->has_castled & WHITE_KINGSIDE_CASTLE)
-        score += HAS_CASTLED_KINGSIDE_BONUS;
+        castling_weights.has_castled_kingside++;
 
     if (board_state->has_castled & WHITE_QUEENSIDE_CASTLE)
-        score += HAS_CASTLED_QUEENSIDE_BONUS;
+        castling_weights.has_castled_queenside++;
 
     if (board_state->has_castled & BLACK_KINGSIDE_CASTLE)
-        score -= HAS_CASTLED_KINGSIDE_BONUS;
+        castling_weights.has_castled_kingside--;
 
     if (board_state->has_castled & BLACK_QUEENSIDE_CASTLE)
-        score -= HAS_CASTLED_QUEENSIDE_BONUS;
-
-    return score;
+        castling_weights.has_castled_queenside--;
+    return castling_weights;
 }
 
-double get_pawn_shelter_score(Board *board)
+PawnShelterWeights get_pawn_shelter_weights(Board *board)
 {
-    double score = 0;
+    PawnShelterWeights pawn_shelter_weights = {0};
 
     // White king shelter
     uint64_t front_of_white_king_mask = increment_rank(board->white_pieces.king);
@@ -86,50 +78,31 @@ double get_pawn_shelter_score(Board *board)
 
     // Score white pawn shelter
     if (has_white_front_pawn)
-        score += 10;
-    else
-        score -= 15; // Penalty for missing front pawn
+        pawn_shelter_weights.front_pawn++;
 
     if (has_white_ahead_pawn)
-        score += 5;
+        pawn_shelter_weights.ahead_pawn++;
     if (has_white_left_pawn)
-        score += 8;
+        pawn_shelter_weights.left_pawn++;
     if (has_white_right_pawn)
-        score += 8;
+        pawn_shelter_weights.right_pawn++;
 
     // Score black pawn shelter (mirror of white scoring)
     if (has_black_front_pawn)
-        score -= 10;
-    else
-        score += 15;
-
+        pawn_shelter_weights.front_pawn--;
     if (has_black_ahead_pawn)
-        score -= 5;
+        pawn_shelter_weights.ahead_pawn--;
     if (has_black_left_pawn)
-        score -= 8;
+        pawn_shelter_weights.left_pawn--;
     if (has_black_right_pawn)
-        score -= 8;
+        pawn_shelter_weights.right_pawn--;
 
-    return score;
+    return pawn_shelter_weights;
 }
 
-double get_open_file_penalty(Board *board)
+AttackingKingSquaresWeights get_attacking_king_squares_weights(BoardState *board_state)
 {
-    double score = 0;
-
-    return score;
-}
-
-double get_pawn_storm_score(Board *board) // Having pawns storming the enemy king is good
-{
-    double score = 0;
-
-    return score;
-}
-
-double get_attacking_king_squares_score(BoardState *board_state)
-{
-    double score = 0;
+    AttackingKingSquaresWeights attacking_king_squares_weights = {0};
 
     // Calculate squares adjacent to the kings, excluding the squares they currently occupy
     uint64_t white_king_squares = expand_bitboard(board_state->board.white_pieces.king) & ~board_state->board.white_pieces.king;
@@ -147,30 +120,71 @@ double get_attacking_king_squares_score(BoardState *board_state)
         attacked_black_king_squares = 4;
 
     // Apply exponential scoring for attacking squares around the enemy king
-    if (attacked_black_king_squares > 0)
-        score += 1 << (attacked_black_king_squares - 1);
+    if (attacked_white_king_squares == 1)
+        attacking_king_squares_weights.one_square++;
+    else if (attacked_white_king_squares == 2)
+        attacking_king_squares_weights.two_squares++;
+    else if (attacked_white_king_squares == 3)
+        attacking_king_squares_weights.three_squares++;
+    else if (attacked_white_king_squares == 4)
+        attacking_king_squares_weights.four_squares++;
 
-    if (attacked_white_king_squares > 0)
-        score -= 1 << (attacked_white_king_squares - 1);
+    if (attacked_black_king_squares == 1)
+        attacking_king_squares_weights.one_square--;
+    else if (attacked_black_king_squares == 2)
+        attacking_king_squares_weights.two_squares--;
+    else if (attacked_black_king_squares == 3)
+        attacking_king_squares_weights.three_squares--;
+    else if (attacked_black_king_squares == 4)
+        attacking_king_squares_weights.four_squares--;
 
-    return score;
+    return attacking_king_squares_weights;
 }
 
-double get_weak_back_rank_penalty(Board *board) // Having a weak back rank is bad
+KingSafetyWeights get_king_safety_weights(BoardState *board_state)
+{
+    KingSafetyWeights king_safety_weights = {0};
+    king_safety_weights.castling_weights = get_castling_weights(board_state);
+    king_safety_weights.pawn_shelter_weights = get_pawn_shelter_weights(&board_state->board);
+    king_safety_weights.attacking_king_squares_weights = get_attacking_king_squares_weights(board_state);
+    return king_safety_weights;
+}
+
+double calculate_king_safety_score(KingSafetyWeights params, KingSafetyWeights middlegame_weights,
+                                   KingSafetyWeights endgame_weights, double game_phase)
 {
     double score = 0;
 
-    return score;
-}
+    // Castling
+    score += params.castling_weights.kingside * (middlegame_weights.castling_weights.kingside * (1 - game_phase) +
+                                                 endgame_weights.castling_weights.kingside * game_phase);
+    score += params.castling_weights.queenside * (middlegame_weights.castling_weights.queenside * (1 - game_phase) +
+                                                  endgame_weights.castling_weights.queenside * game_phase);
+    score += params.castling_weights.both_sides * (middlegame_weights.castling_weights.both_sides * (1 - game_phase) +
+                                                   endgame_weights.castling_weights.both_sides * game_phase);
+    score += params.castling_weights.has_castled_kingside * (middlegame_weights.castling_weights.has_castled_kingside * (1 - game_phase) +
+                                                             endgame_weights.castling_weights.has_castled_kingside * game_phase);
+    score += params.castling_weights.has_castled_queenside * (middlegame_weights.castling_weights.has_castled_queenside * (1 - game_phase) +
+                                                              endgame_weights.castling_weights.has_castled_queenside * game_phase);
 
-double get_king_safety_score(BoardState *board_state)
-{
-    double score = 0;
-    score += get_castling_score(board_state);
-    score += get_pawn_shelter_score(&board_state->board);
-    score += get_open_file_penalty(&board_state->board);
-    score += get_pawn_storm_score(&board_state->board);
-    score += get_attacking_king_squares_score(board_state);
-    score += get_weak_back_rank_penalty(&board_state->board);
+    // Pawn shelter
+    score += params.pawn_shelter_weights.front_pawn * (middlegame_weights.pawn_shelter_weights.front_pawn * (1 - game_phase) +
+                                                       endgame_weights.pawn_shelter_weights.front_pawn * game_phase);
+    score += params.pawn_shelter_weights.ahead_pawn * (middlegame_weights.pawn_shelter_weights.ahead_pawn * (1 - game_phase) +
+                                                       endgame_weights.pawn_shelter_weights.ahead_pawn * game_phase);
+    score += params.pawn_shelter_weights.left_pawn * (middlegame_weights.pawn_shelter_weights.left_pawn * (1 - game_phase) +
+                                                      endgame_weights.pawn_shelter_weights.left_pawn * game_phase);
+    score += params.pawn_shelter_weights.right_pawn * (middlegame_weights.pawn_shelter_weights.right_pawn * (1 - game_phase) +
+                                                       endgame_weights.pawn_shelter_weights.right_pawn * game_phase);
+    // Attacking king squares
+    score += params.attacking_king_squares_weights.one_square * (middlegame_weights.attacking_king_squares_weights.one_square * (1 - game_phase) +
+                                                                 endgame_weights.attacking_king_squares_weights.one_square * game_phase);
+    score += params.attacking_king_squares_weights.two_squares * (middlegame_weights.attacking_king_squares_weights.two_squares * (1 - game_phase) +
+                                                                  endgame_weights.attacking_king_squares_weights.two_squares * game_phase);
+    score += params.attacking_king_squares_weights.three_squares * (middlegame_weights.attacking_king_squares_weights.three_squares * (1 - game_phase) +
+                                                                    endgame_weights.attacking_king_squares_weights.three_squares * game_phase);
+    score += params.attacking_king_squares_weights.four_squares * (middlegame_weights.attacking_king_squares_weights.four_squares * (1 - game_phase) +
+                                                                   endgame_weights.attacking_king_squares_weights.four_squares * game_phase);
+
     return score;
 }
