@@ -112,13 +112,6 @@ AttackingKingSquaresWeights get_attacking_king_squares_weights(BoardState *board
     uint8_t attacked_white_king_squares = __builtin_popcountll(white_king_squares & board_state->black_attack);
     uint8_t attacked_black_king_squares = __builtin_popcountll(black_king_squares & board_state->white_attack);
 
-    // Cap the number of attacked squares to 4
-    if (attacked_white_king_squares > 4)
-        attacked_white_king_squares = 4;
-
-    if (attacked_black_king_squares > 4)
-        attacked_black_king_squares = 4;
-
     // Apply exponential scoring for attacking squares around the enemy king
     if (attacked_white_king_squares == 1)
         attacking_king_squares_weights.one_square++;
