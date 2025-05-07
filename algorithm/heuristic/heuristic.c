@@ -106,7 +106,10 @@ BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
                                          DEFAULT_ENDGAME_KING_SAFETY_WEIGHTS, game_phase);
 
     // Pawn structure scoring
-    score += get_pawn_structure_score(board_state);
+    PawnStructureWeights pawn_structure_weights = get_pawn_structure_weights(board_state);
+    score += calculate_pawn_structure_score(pawn_structure_weights,
+                                            DEFAULT_MIDDLEGAME_PAWN_STRUCTURE_WEIGHTS,
+                                            DEFAULT_ENDGAME_PAWN_STRUCTURE_WEIGHTS, game_phase);
 
     // Square control scoring
     score += get_square_control(board_state);

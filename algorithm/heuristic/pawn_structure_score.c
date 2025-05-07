@@ -1,20 +1,10 @@
 #include "pawn_structure_score.h"
 #include "../../utils/bitboard.h"
+#include "../../engine/attack_generation/attack_generation.h"
 
-#define DOUBLE_PAWN_PENALTY 20
-#define ISOLATED_PAWN_PENALTY 20
-#define BACKWARD_PAWN_PENALTY 15
-#define PAWN_ISLAND_PENALTY 10
-#define PAWN_CHAIN_BONUS 10
-
-#define BISHOP_PAWN_FRIENDLY_PENALTY 3
-#define BISHOP_PAWN_ENEMY_PENALTY 2
-
-static const int PASSED_PAWN_BONUS[] = {0, 120, 80, 50, 30, 15, 15}; // Number of squares from promotion
-
-double get_double_pawn_penalty(BoardState *board_state)
+double get_double_pawn_weights(BoardState *board_state)
 {
-    double score = 0;
+    double double_pawn_weights = 0;
 
     uint64_t white_pawns = board_state->board.white_pieces.pawns;
     uint64_t black_pawns = board_state->board.black_pieces.pawns;
@@ -37,30 +27,30 @@ double get_double_pawn_penalty(BoardState *board_state)
     uint8_t black_pawn_g_file = __builtin_popcountll(black_pawns & FILE_G_MASK);
     uint8_t black_pawn_h_file = __builtin_popcountll(black_pawns & FILE_H_MASK);
 
-    score -= (white_pawn_a_file > 1) ? (white_pawn_a_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score -= (white_pawn_b_file > 1) ? (white_pawn_b_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score -= (white_pawn_c_file > 1) ? (white_pawn_c_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score -= (white_pawn_d_file > 1) ? (white_pawn_d_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score -= (white_pawn_e_file > 1) ? (white_pawn_e_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score -= (white_pawn_f_file > 1) ? (white_pawn_f_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score -= (white_pawn_g_file > 1) ? (white_pawn_g_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score -= (white_pawn_h_file > 1) ? (white_pawn_h_file - 1) * DOUBLE_PAWN_PENALTY : 0;
+    double_pawn_weights += (white_pawn_a_file > 1) ? (white_pawn_a_file - 1) : 0;
+    double_pawn_weights += (white_pawn_b_file > 1) ? (white_pawn_b_file - 1) : 0;
+    double_pawn_weights += (white_pawn_c_file > 1) ? (white_pawn_c_file - 1) : 0;
+    double_pawn_weights += (white_pawn_d_file > 1) ? (white_pawn_d_file - 1) : 0;
+    double_pawn_weights += (white_pawn_e_file > 1) ? (white_pawn_e_file - 1) : 0;
+    double_pawn_weights += (white_pawn_f_file > 1) ? (white_pawn_f_file - 1) : 0;
+    double_pawn_weights += (white_pawn_g_file > 1) ? (white_pawn_g_file - 1) : 0;
+    double_pawn_weights += (white_pawn_h_file > 1) ? (white_pawn_h_file - 1) : 0;
 
-    score += (black_pawn_a_file > 1) ? (black_pawn_a_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score += (black_pawn_b_file > 1) ? (black_pawn_b_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score += (black_pawn_c_file > 1) ? (black_pawn_c_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score += (black_pawn_d_file > 1) ? (black_pawn_d_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score += (black_pawn_e_file > 1) ? (black_pawn_e_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score += (black_pawn_f_file > 1) ? (black_pawn_f_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score += (black_pawn_g_file > 1) ? (black_pawn_g_file - 1) * DOUBLE_PAWN_PENALTY : 0;
-    score += (black_pawn_h_file > 1) ? (black_pawn_h_file - 1) * DOUBLE_PAWN_PENALTY : 0;
+    double_pawn_weights -= (black_pawn_a_file > 1) ? (black_pawn_a_file - 1) : 0;
+    double_pawn_weights -= (black_pawn_b_file > 1) ? (black_pawn_b_file - 1) : 0;
+    double_pawn_weights -= (black_pawn_c_file > 1) ? (black_pawn_c_file - 1) : 0;
+    double_pawn_weights -= (black_pawn_d_file > 1) ? (black_pawn_d_file - 1) : 0;
+    double_pawn_weights -= (black_pawn_e_file > 1) ? (black_pawn_e_file - 1) : 0;
+    double_pawn_weights -= (black_pawn_f_file > 1) ? (black_pawn_f_file - 1) : 0;
+    double_pawn_weights -= (black_pawn_g_file > 1) ? (black_pawn_g_file - 1) : 0;
+    double_pawn_weights -= (black_pawn_h_file > 1) ? (black_pawn_h_file - 1) : 0;
 
-    return score;
+    return double_pawn_weights;
 }
 
-double get_isolated_pawn_penalty(BoardState *board_state)
+double get_isolated_pawn_weights(BoardState *board_state)
 {
-    double score = 0;
+    double isolated_pawn_weights = 0;
 
     uint64_t white_pawns = board_state->board.white_pieces.pawns;
     uint64_t black_pawns = board_state->board.black_pieces.pawns;
@@ -83,30 +73,30 @@ double get_isolated_pawn_penalty(BoardState *board_state)
     bool file_g_has_isolated_black_pawn = __builtin_popcountll(black_pawns & FILE_G_MASK) == 1 && __builtin_popcountll(black_pawns & FILE_F_MASK) == 0 && __builtin_popcountll(black_pawns & FILE_H_MASK) == 0;
     bool file_h_has_isolated_black_pawn = __builtin_popcountll(black_pawns & FILE_H_MASK) == 1 && __builtin_popcountll(black_pawns & FILE_G_MASK) == 0;
 
-    score -= file_a_has_isolated_white_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score -= file_b_has_isolated_white_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score -= file_c_has_isolated_white_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score -= file_d_has_isolated_white_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score -= file_e_has_isolated_white_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score -= file_f_has_isolated_white_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score -= file_g_has_isolated_white_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score -= file_h_has_isolated_white_pawn ? ISOLATED_PAWN_PENALTY : 0;
+    isolated_pawn_weights += file_a_has_isolated_white_pawn ? 1 : 0;
+    isolated_pawn_weights += file_b_has_isolated_white_pawn ? 1 : 0;
+    isolated_pawn_weights += file_c_has_isolated_white_pawn ? 1 : 0;
+    isolated_pawn_weights += file_d_has_isolated_white_pawn ? 1 : 0;
+    isolated_pawn_weights += file_e_has_isolated_white_pawn ? 1 : 0;
+    isolated_pawn_weights += file_f_has_isolated_white_pawn ? 1 : 0;
+    isolated_pawn_weights += file_g_has_isolated_white_pawn ? 1 : 0;
+    isolated_pawn_weights += file_h_has_isolated_white_pawn ? 1 : 0;
 
-    score += file_a_has_isolated_black_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score += file_b_has_isolated_black_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score += file_c_has_isolated_black_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score += file_d_has_isolated_black_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score += file_e_has_isolated_black_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score += file_f_has_isolated_black_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score += file_g_has_isolated_black_pawn ? ISOLATED_PAWN_PENALTY : 0;
-    score += file_h_has_isolated_black_pawn ? ISOLATED_PAWN_PENALTY : 0;
+    isolated_pawn_weights -= file_a_has_isolated_black_pawn ? 1 : 0;
+    isolated_pawn_weights -= file_b_has_isolated_black_pawn ? 1 : 0;
+    isolated_pawn_weights -= file_c_has_isolated_black_pawn ? 1 : 0;
+    isolated_pawn_weights -= file_d_has_isolated_black_pawn ? 1 : 0;
+    isolated_pawn_weights -= file_e_has_isolated_black_pawn ? 1 : 0;
+    isolated_pawn_weights -= file_f_has_isolated_black_pawn ? 1 : 0;
+    isolated_pawn_weights -= file_g_has_isolated_black_pawn ? 1 : 0;
+    isolated_pawn_weights -= file_h_has_isolated_black_pawn ? 1 : 0;
 
-    return score;
+    return isolated_pawn_weights;
 }
 
-double get_backward_pawn_penalty(BoardState *board_state)
+double get_backward_pawn_weights(BoardState *board_state)
 {
-    double score = 0;
+    double backward_pawn_weights = 0;
 
     uint64_t white_pawns = board_state->board.white_pieces.pawns;
     uint64_t black_pawns = board_state->board.black_pieces.pawns;
@@ -150,15 +140,15 @@ double get_backward_pawn_penalty(BoardState *board_state)
             number_of_black_backward_pawns++;
     }
 
-    score -= number_of_white_backward_pawns * BACKWARD_PAWN_PENALTY;
-    score += number_of_black_backward_pawns * BACKWARD_PAWN_PENALTY;
+    backward_pawn_weights += number_of_white_backward_pawns;
+    backward_pawn_weights -= number_of_black_backward_pawns;
 
-    return score;
+    return backward_pawn_weights;
 }
 
-double get_passed_pawn_bonus(BoardState *board_state)
+PassedPawnWeights get_passed_pawn_weights(BoardState *board_state)
 {
-    double score = 0;
+    PassedPawnWeights passed_pawn_weights = {0};
 
     uint64_t white_pawns = board_state->board.white_pieces.pawns;
     uint64_t black_pawns = board_state->board.black_pieces.pawns;
@@ -172,7 +162,20 @@ double get_passed_pawn_bonus(BoardState *board_state)
         uint64_t passed_pawn_mask = get_passed_pawn_mask_white(position);
         uint8_t number_of_squares_from_promotion = 7 - (index / 8);
         if (!(passed_pawn_mask & board_state->board.black_pieces.pawns))
-            score += PASSED_PAWN_BONUS[number_of_squares_from_promotion];
+        {
+            if (number_of_squares_from_promotion == 1)
+                passed_pawn_weights.one_square_left++;
+            else if (number_of_squares_from_promotion == 2)
+                passed_pawn_weights.two_squares_left++;
+            else if (number_of_squares_from_promotion == 3)
+                passed_pawn_weights.three_squares_left++;
+            else if (number_of_squares_from_promotion == 4)
+                passed_pawn_weights.four_squares_left++;
+            else if (number_of_squares_from_promotion == 5)
+                passed_pawn_weights.five_squares_left++;
+            else if (number_of_squares_from_promotion == 6)
+                passed_pawn_weights.six_squares_left++;
+        }
     }
 
     while (black_pawns)
@@ -184,32 +187,53 @@ double get_passed_pawn_bonus(BoardState *board_state)
         uint64_t passed_pawn_mask = get_passed_pawn_mask_black(position);
         uint8_t number_of_squares_from_promotion = index / 8;
         if (!(passed_pawn_mask & board_state->board.white_pieces.pawns))
-            score -= PASSED_PAWN_BONUS[number_of_squares_from_promotion];
+        {
+            if (number_of_squares_from_promotion == 1)
+                passed_pawn_weights.one_square_left--;
+            else if (number_of_squares_from_promotion == 2)
+                passed_pawn_weights.two_squares_left--;
+            else if (number_of_squares_from_promotion == 3)
+                passed_pawn_weights.three_squares_left--;
+            else if (number_of_squares_from_promotion == 4)
+                passed_pawn_weights.four_squares_left--;
+            else if (number_of_squares_from_promotion == 5)
+                passed_pawn_weights.five_squares_left--;
+            else if (number_of_squares_from_promotion == 6)
+                passed_pawn_weights.six_squares_left--;
+        }
     }
 
-    return score;
+    return passed_pawn_weights;
 }
 
-double get_pawn_island_penalty(BoardState *board_state)
+PawnChainWeights get_pawn_chain_weights(BoardState *board_state)
 {
-    return 0;
-}
-
-double get_pawn_chain_bonus(BoardState *board_state)
-{
-    double score = 0;
+    PawnChainWeights pawn_chain_weights = {0};
     uint64_t white_pawn_attacks = board_state->white_attacks.pawns;
     uint64_t black_pawn_attacks = board_state->black_attacks.pawns;
 
-    score += __builtin_popcountll(board_state->board.white_pieces.pawns & white_pawn_attacks) * PAWN_CHAIN_BONUS;
-    score -= __builtin_popcountll(board_state->board.black_pieces.pawns & black_pawn_attacks) * PAWN_CHAIN_BONUS;
+    uint64_t protected_white_pawns = board_state->board.white_pieces.pawns & white_pawn_attacks;
+    uint64_t protected_black_pawns = board_state->board.black_pieces.pawns & black_pawn_attacks;
 
-    return score;
+    uint64_t protected_white_pawn_attacks = generate_white_pawn_attacks(protected_white_pawns);
+    uint64_t protected_black_pawn_attacks = generate_black_pawn_attacks(protected_black_pawns);
+
+    uint64_t protected_by_protected_white_pawns = protected_white_pawn_attacks & board_state->board.white_pieces.pawns;
+    uint64_t protected_by_protected_black_pawns = protected_black_pawn_attacks & board_state->board.black_pieces.pawns;
+
+    protected_white_pawns &= ~protected_by_protected_white_pawns;
+    protected_black_pawns &= ~protected_by_protected_black_pawns;
+    pawn_chain_weights.protected_pawn += __builtin_popcountll(protected_white_pawns);
+    pawn_chain_weights.protected_pawn -= __builtin_popcountll(protected_black_pawns);
+    pawn_chain_weights.protected_by_protected_pawn += __builtin_popcountll(protected_by_protected_white_pawns);
+    pawn_chain_weights.protected_by_protected_pawn -= __builtin_popcountll(protected_by_protected_black_pawns);
+
+    return pawn_chain_weights;
 }
 
-double get_bishop_block_score(BoardState *board_state)
+BishopBlockWeights get_bishop_block_weights(BoardState *board_state)
 {
-    double score = 0;
+    BishopBlockWeights bishop_block_weights = {0};
 
     bool white_has_light_square_bishop = (board_state->board.white_pieces.bishops & LIGHT_SQUARES_MASK) != 0;
     bool white_has_dark_square_bishop = (board_state->board.white_pieces.bishops & DARK_SQUARES_MASK) != 0;
@@ -223,40 +247,85 @@ double get_bishop_block_score(BoardState *board_state)
 
     if (white_has_light_square_bishop)
     {
-        score -= white_pawn_light_square_count * BISHOP_PAWN_FRIENDLY_PENALTY;
-        score -= black_pawn_light_square_count * BISHOP_PAWN_ENEMY_PENALTY;
+        bishop_block_weights.friendly_pawn += white_pawn_light_square_count;
+        bishop_block_weights.enemy_pawn += black_pawn_light_square_count;
     }
 
     if (white_has_dark_square_bishop)
     {
-        score -= white_pawn_dark_square_count * BISHOP_PAWN_FRIENDLY_PENALTY;
-        score -= black_pawn_dark_square_count * BISHOP_PAWN_ENEMY_PENALTY;
+        bishop_block_weights.friendly_pawn += white_pawn_dark_square_count;
+        bishop_block_weights.enemy_pawn += black_pawn_dark_square_count;
     }
 
     if (black_has_light_square_bishop)
     {
-        score += white_pawn_light_square_count * BISHOP_PAWN_ENEMY_PENALTY;
-        score += black_pawn_light_square_count * BISHOP_PAWN_FRIENDLY_PENALTY;
+        bishop_block_weights.friendly_pawn -= black_pawn_light_square_count;
+        bishop_block_weights.enemy_pawn -= white_pawn_light_square_count;
     }
 
     if (black_has_dark_square_bishop)
     {
-        score += white_pawn_dark_square_count * BISHOP_PAWN_ENEMY_PENALTY;
-        score += black_pawn_dark_square_count * BISHOP_PAWN_FRIENDLY_PENALTY;
+        bishop_block_weights.friendly_pawn -= black_pawn_dark_square_count;
+        bishop_block_weights.enemy_pawn -= white_pawn_dark_square_count;
     }
 
-    return score;
+    return bishop_block_weights;
 }
 
-double get_pawn_structure_score(BoardState *board_state)
+PawnStructureWeights get_pawn_structure_weights(BoardState *board_state)
+{
+    PawnStructureWeights pawn_structure_weights = {0};
+
+    pawn_structure_weights.double_pawn_weights = get_double_pawn_weights(board_state);
+    pawn_structure_weights.isolated_pawn_weights = get_isolated_pawn_weights(board_state);
+    pawn_structure_weights.backward_pawn_weights = get_backward_pawn_weights(board_state);
+    pawn_structure_weights.passed_pawn_weights = get_passed_pawn_weights(board_state);
+    pawn_structure_weights.pawn_chain_weights = get_pawn_chain_weights(board_state);
+    pawn_structure_weights.bishop_block_weights = get_bishop_block_weights(board_state);
+
+    return pawn_structure_weights;
+}
+
+double calculate_pawn_structure_score(PawnStructureWeights params, PawnStructureWeights middlegame_weights,
+                                      PawnStructureWeights endgame_weights, double game_phase)
 {
     double score = 0;
-    score += get_double_pawn_penalty(board_state);
-    score += get_isolated_pawn_penalty(board_state);
-    score += get_backward_pawn_penalty(board_state);
-    score += get_passed_pawn_bonus(board_state);
-    score += get_pawn_island_penalty(board_state);
-    score += get_pawn_chain_bonus(board_state);
-    score += get_bishop_block_score(board_state);
+
+    // Double pawns
+    score += params.double_pawn_weights * (middlegame_weights.double_pawn_weights * (1 - game_phase) +
+                                           endgame_weights.double_pawn_weights * game_phase);
+
+    // Isolated pawns
+    score += params.isolated_pawn_weights * (middlegame_weights.isolated_pawn_weights * (1 - game_phase) +
+                                             endgame_weights.isolated_pawn_weights * game_phase);
+
+    // Backward pawns
+    score += params.backward_pawn_weights * (middlegame_weights.backward_pawn_weights * (1 - game_phase) +
+                                             endgame_weights.backward_pawn_weights * game_phase);
+
+    // Passed pawns
+    score += params.passed_pawn_weights.one_square_left * (middlegame_weights.passed_pawn_weights.one_square_left * (1 - game_phase) +
+                                                           endgame_weights.passed_pawn_weights.one_square_left * game_phase);
+    score += params.passed_pawn_weights.two_squares_left * (middlegame_weights.passed_pawn_weights.two_squares_left * (1 - game_phase) +
+                                                            endgame_weights.passed_pawn_weights.two_squares_left * game_phase);
+    score += params.passed_pawn_weights.three_squares_left * (middlegame_weights.passed_pawn_weights.three_squares_left * (1 - game_phase) +
+                                                              endgame_weights.passed_pawn_weights.three_squares_left * game_phase);
+    score += params.passed_pawn_weights.four_squares_left * (middlegame_weights.passed_pawn_weights.four_squares_left * (1 - game_phase) +
+                                                             endgame_weights.passed_pawn_weights.four_squares_left * game_phase);
+    score += params.passed_pawn_weights.five_squares_left * (middlegame_weights.passed_pawn_weights.five_squares_left * (1 - game_phase) +
+                                                             endgame_weights.passed_pawn_weights.five_squares_left * game_phase);
+    score += params.passed_pawn_weights.six_squares_left * (middlegame_weights.passed_pawn_weights.six_squares_left * (1 - game_phase) +
+                                                            endgame_weights.passed_pawn_weights.six_squares_left * game_phase);
+
+    // Pawn chains
+    score += params.pawn_chain_weights.protected_by_protected_pawn * (middlegame_weights.pawn_chain_weights.protected_by_protected_pawn * (1 - game_phase) +
+                                                                      endgame_weights.pawn_chain_weights.protected_by_protected_pawn * game_phase);
+    score += params.pawn_chain_weights.protected_pawn * (middlegame_weights.pawn_chain_weights.protected_pawn * (1 - game_phase) +
+                                                         endgame_weights.pawn_chain_weights.protected_pawn * game_phase);
+    // Bishop blocks
+    score += params.bishop_block_weights.friendly_pawn * (middlegame_weights.bishop_block_weights.friendly_pawn * (1 - game_phase) +
+                                                          endgame_weights.bishop_block_weights.friendly_pawn * game_phase);
+    score += params.bishop_block_weights.enemy_pawn * (middlegame_weights.bishop_block_weights.enemy_pawn * (1 - game_phase) +
+                                                       endgame_weights.bishop_block_weights.enemy_pawn * game_phase);
     return score;
 }
