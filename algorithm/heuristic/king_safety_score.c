@@ -128,6 +128,14 @@ AttackingKingSquaresWeights get_attacking_king_squares_weights(BoardState *board
         attacking_king_squares_weights.three_squares++;
     else if (attacked_white_king_squares == 4)
         attacking_king_squares_weights.four_squares++;
+    else if (attacked_white_king_squares == 5)
+        attacking_king_squares_weights.five_squares++;
+    else if (attacked_white_king_squares == 6)
+        attacking_king_squares_weights.six_squares++;
+    else if (attacked_white_king_squares == 7)
+        attacking_king_squares_weights.seven_squares++;
+    else if (attacked_white_king_squares == 8)
+        attacking_king_squares_weights.eight_squares++;
 
     if (attacked_black_king_squares == 1)
         attacking_king_squares_weights.one_square--;
@@ -137,6 +145,14 @@ AttackingKingSquaresWeights get_attacking_king_squares_weights(BoardState *board
         attacking_king_squares_weights.three_squares--;
     else if (attacked_black_king_squares == 4)
         attacking_king_squares_weights.four_squares--;
+    else if (attacked_black_king_squares == 5)
+        attacking_king_squares_weights.five_squares--;
+    else if (attacked_black_king_squares == 6)
+        attacking_king_squares_weights.six_squares--;
+    else if (attacked_black_king_squares == 7)
+        attacking_king_squares_weights.seven_squares--;
+    else if (attacked_black_king_squares == 8)
+        attacking_king_squares_weights.eight_squares--;
 
     return attacking_king_squares_weights;
 }
@@ -185,6 +201,14 @@ double calculate_king_safety_score(KingSafetyWeights params, KingSafetyWeights m
                                                                     endgame_weights.attacking_king_squares_weights.three_squares * game_phase);
     score += params.attacking_king_squares_weights.four_squares * (middlegame_weights.attacking_king_squares_weights.four_squares * (1 - game_phase) +
                                                                    endgame_weights.attacking_king_squares_weights.four_squares * game_phase);
+    score += params.attacking_king_squares_weights.five_squares * (middlegame_weights.attacking_king_squares_weights.five_squares * (1 - game_phase) +
+                                                                   endgame_weights.attacking_king_squares_weights.five_squares * game_phase);
+    score += params.attacking_king_squares_weights.six_squares * (middlegame_weights.attacking_king_squares_weights.six_squares * (1 - game_phase) +
+                                                                  endgame_weights.attacking_king_squares_weights.six_squares * game_phase);
+    score += params.attacking_king_squares_weights.seven_squares * (middlegame_weights.attacking_king_squares_weights.seven_squares * (1 - game_phase) +
+                                                                    endgame_weights.attacking_king_squares_weights.seven_squares * game_phase);
+    score += params.attacking_king_squares_weights.eight_squares * (middlegame_weights.attacking_king_squares_weights.eight_squares * (1 - game_phase) +
+                                                                    endgame_weights.attacking_king_squares_weights.eight_squares * game_phase);
 
     return score;
 }

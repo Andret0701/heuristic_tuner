@@ -34,6 +34,10 @@ typedef struct
     double two_squares;
     double three_squares;
     double four_squares;
+    double five_squares;
+    double six_squares;
+    double seven_squares;
+    double eight_squares;
 } AttackingKingSquaresWeights;
 
 typedef struct
@@ -51,7 +55,7 @@ const KingSafetyWeights DEFAULT_MIDDLEGAME_KING_SAFETY_WEIGHTS = {
         .has_castled_kingside = 30.0,
         .has_castled_queenside = 25.0},
     .pawn_shelter_weights = {.front_pawn = 25.0, .ahead_pawn = 5.0, .left_pawn = 8.0, .right_pawn = 8.0},
-    .attacking_king_squares_weights = {.one_square = 1.0, .two_squares = 2.0, .three_squares = 4.0, .four_squares = 8.0}};
+    .attacking_king_squares_weights = {.one_square = 1.0, .two_squares = 2.0, .three_squares = 4.0, .four_squares = 8.0, .five_squares = 16.0, .six_squares = 32.0, .seven_squares = 64.0, .eight_squares = 128.0}};
 
 const KingSafetyWeights DEFAULT_ENDGAME_KING_SAFETY_WEIGHTS = {
     .castling_weights = {
@@ -61,7 +65,7 @@ const KingSafetyWeights DEFAULT_ENDGAME_KING_SAFETY_WEIGHTS = {
         .has_castled_kingside = 30.0,
         .has_castled_queenside = 25.0},
     .pawn_shelter_weights = {.front_pawn = 25.0, .ahead_pawn = 5.0, .left_pawn = 8.0, .right_pawn = 8.0},
-    .attacking_king_squares_weights = {.one_square = 1.0, .two_squares = 2.0, .three_squares = 4.0, .four_squares = 8.0}};
+    .attacking_king_squares_weights = {.one_square = 1.0, .two_squares = 2.0, .three_squares = 4.0, .four_squares = 8.0, .five_squares = 16.0, .six_squares = 32.0, .seven_squares = 64.0, .eight_squares = 128.0}};
 
 KingSafetyWeights get_king_safety_weights(BoardState *board_state);
 double calculate_king_safety_score(KingSafetyWeights params, KingSafetyWeights middlegame_weights,
