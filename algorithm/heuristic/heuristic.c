@@ -54,11 +54,38 @@ Result get_result(BoardState *board_state, bool is_finished)
     return result;
 }
 
+double get_game_phase(Board *board)
+{
+    const int PHASE_KNIGHT = 1;
+    const int PHASE_BISHOP = 1;
+    const int PHASE_ROOK = 2;
+    const int PHASE_QUEEN = 4;
+
+    const int MAX_PHASE = 24;
+
+    int phase = 0;
+
+    // Count remaining white pieces
+    phase += PHASE_KNIGHT * __builtin_popcountll(board->white_pieces.knights);
+    phase += PHASE_BISHOP * __builtin_popcountll(board->white_pieces.bishops);
+    phase += PHASE_ROOK * __builtin_popcountll(board->white_pieces.rooks);
+    phase += PHASE_QUEEN * __builtin_popcountll(board->white_pieces.queens);
+
+    // Count remaining black pieces
+    phase += PHASE_KNIGHT * __builtin_popcountll(board->black_pieces.knights);
+    phase += PHASE_BISHOP * __builtin_popcountll(board->black_pieces.bishops);
+    phase += PHASE_ROOK * __builtin_popcountll(board->black_pieces.rooks);
+    phase += PHASE_QUEEN * __builtin_popcountll(board->black_pieces.queens);
+
+    // Flip to endgame = 1.0, opening = 0.0
+    return 1.0 - ((double)phase / MAX_PHASE);
+}
+
 BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
 {
     double score = 0;
     Result result = get_result(board_state, is_finished);
-    double game_phase = 0.0;
+    double game_phase = get_game_phase(&board_state->board);
 
     // Material counting
     MaterialWeights material_weights = get_material_weights(&board_state->board);
@@ -66,11 +93,11 @@ BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
                                       DEFAULT_MIDDLEGAME_MATERIAL_WEIGHTS,
                                       DEFAULT_ENDGAME_MATERIAL_WEIGHTS, game_phase);
 
-    // Positional scoring
+    // Positional scoring. This must be fixed
     PieceSquareWeights piece_square_weights = get_piece_square_weights(&board_state->board);
     score += calculate_piece_square_score(piece_square_weights,
-                                          get_default_middlegame_piece_square_weights(),
-                                          get_default_endgame_piece_square_weights(), game_phase);
+                                          DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS,
+                                          DEFAULT_ENDGAME_PIECE_SQUARE_WEIGHTS, game_phase);
 
     // King safety scoring
     KingSafetyWeights king_safety_weights = get_king_safety_weights(board_state);

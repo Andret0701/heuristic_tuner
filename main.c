@@ -26,10 +26,12 @@
 #include "algorithm/heuristic/heuristic.h"
 #include "algorithm/heuristic/pawn_structure_score.h"
 #include "engine/encoded_move.h"
+#include "algorithm/heuristic/position_score.h"
 
 int main(int argc, char *argv[])
 {
     init_zobrist_keys();
+    init_default_piece_square_weights();
 
     // Board board = fen_to_board(STARTFEN);
     // Board next_board = apply_move(&board, "e2e4");

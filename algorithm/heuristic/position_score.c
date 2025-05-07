@@ -1,16 +1,39 @@
 #include "position_score.h"
 #include "piece_square_tables.h"
+#include "../../utils/bitboard.h"
 
-SquareWeights get_piece_count(uint64_t pieces)
+void print_square_weights(SquareWeights square_weights)
+{
+    double *fields = (double *)&square_weights;
+    for (int rank = 7; rank >= 0; rank--)
+    {
+        for (int file = 0; file < 8; file++)
+        {
+            int index = rank * 8 + file;
+            printf("%.2f ", fields[index]);
+        }
+        printf("\n");
+    }
+}
+
+SquareWeights get_piece_count(uint64_t white_pieces, uint64_t black_pieces)
 {
     SquareWeights square_weights = {0};
     double *fields = (double *)&square_weights;
 
-    while (pieces)
+    while (white_pieces)
     {
-        int square = __builtin_ctzll(pieces);
-        pieces &= pieces - 1;
+        int square = __builtin_ctzll(white_pieces);
+        white_pieces &= white_pieces - 1;
         fields[square]++;
+    }
+
+    black_pieces = flip_bitboard(black_pieces);
+    while (black_pieces)
+    {
+        int square = __builtin_ctzll(black_pieces);
+        black_pieces &= black_pieces - 1;
+        fields[square]--;
     }
 
     return square_weights;
@@ -20,12 +43,39 @@ PieceSquareWeights get_piece_square_weights(Board *board)
 {
     PieceSquareWeights piece_square_weights = {0};
 
-    piece_square_weights.pawn = get_piece_count(board->white_pieces.pawns);
-    piece_square_weights.knight = get_piece_count(board->white_pieces.knights);
-    piece_square_weights.bishop = get_piece_count(board->white_pieces.bishops);
-    piece_square_weights.rook = get_piece_count(board->white_pieces.rooks);
-    piece_square_weights.queen = get_piece_count(board->white_pieces.queens);
-    piece_square_weights.king = get_piece_count(board->white_pieces.king);
+    piece_square_weights.pawn = get_piece_count(board->white_pieces.pawns, board->black_pieces.pawns);
+    piece_square_weights.knight = get_piece_count(board->white_pieces.knights, board->black_pieces.knights);
+    piece_square_weights.bishop = get_piece_count(board->white_pieces.bishops, board->black_pieces.bishops);
+    piece_square_weights.rook = get_piece_count(board->white_pieces.rooks, board->black_pieces.rooks);
+    piece_square_weights.queen = get_piece_count(board->white_pieces.queens, board->black_pieces.queens);
+    piece_square_weights.king = get_piece_count(board->white_pieces.king, board->black_pieces.king);
+
+    // printf("Board: \n");
+    // print_board(board);
+    // printf("Pawn square weights:\n");
+    // print_square_weights(piece_square_weights.pawn);
+    // printf("Pawn middlegame weights:\n");
+    // print_square_weights(DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS.pawn);
+    // printf("Knight square weights:\n");
+    // print_square_weights(piece_square_weights.knight);
+    // printf("Knight middlegame weights:\n");
+    // print_square_weights(DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS.knight);
+    // printf("Bishop square weights:\n");
+    // print_square_weights(piece_square_weights.bishop);
+    // printf("Bishop middlegame weights:\n");
+    // print_square_weights(DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS.bishop);
+    // printf("Rook square weights:\n");
+    // print_square_weights(piece_square_weights.rook);
+    // printf("Rook middlegame weights:\n");
+    // print_square_weights(DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS.rook);
+    // printf("Queen square weights:\n");
+    // print_square_weights(piece_square_weights.queen);
+    // printf("Queen middlegame weights:\n");
+    // print_square_weights(DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS.queen);
+    // printf("King square weights:\n");
+    // print_square_weights(piece_square_weights.king);
+    // printf("King middlegame weights:\n");
+    // print_square_weights(DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS.king);
 
     return piece_square_weights;
 }
@@ -123,15 +173,20 @@ SquareWeights table_to_square_weights(const int16_t *table)
     SquareWeights square_weights = {0};
     double *fields = (double *)&square_weights;
 
-    for (int i = 0; i < 64; i++)
+    for (int rank = 0; rank < 8; rank++)
     {
-        fields[i] = table[i];
+        for (int file = 0; file < 8; file++)
+        {
+            int index = (7 - rank) * 8 + file;
+            fields[rank * 8 + file] = table[index];
+        }
     }
 
     return square_weights;
 }
 
-PieceSquareWeights get_default_middlegame_piece_square_weights()
+PieceSquareWeights
+get_default_middlegame_piece_square_weights()
 {
     PieceSquareWeights piece_square_weights = {0};
 
@@ -157,4 +212,10 @@ PieceSquareWeights get_default_endgame_piece_square_weights()
     piece_square_weights.king = table_to_square_weights(KING_TABLE_END);
 
     return piece_square_weights;
+}
+
+void init_default_piece_square_weights()
+{
+    DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS = get_default_middlegame_piece_square_weights();
+    DEFAULT_ENDGAME_PIECE_SQUARE_WEIGHTS = get_default_endgame_piece_square_weights();
 }
