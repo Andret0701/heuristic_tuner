@@ -119,5 +119,9 @@ HeuristicScore get_heuristic_score(BoardState *board_state)
     heuristic_score.weights.pawn_structure_weights = pawn_structure_weights;
     heuristic_score.weights.square_control_weights = square_control_weights;
     heuristic_score.weights.game_phase = game_phase;
+
+    if (board_state->board.side_to_move == BLACK)
+        heuristic_score.score = -heuristic_score.score;
+
     return heuristic_score;
 }
