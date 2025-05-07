@@ -19,6 +19,7 @@ typedef struct
     KingSafetyWeights king_safety_weights;
     PawnStructureWeights pawn_structure_weights;
     SquareControlWeights square_control_weights;
+    double game_phase;
 } HeuristicWeights;
 
 typedef struct

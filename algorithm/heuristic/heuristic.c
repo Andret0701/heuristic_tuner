@@ -118,5 +118,6 @@ HeuristicScore get_heuristic_score(BoardState *board_state)
     heuristic_score.weights.king_safety_weights = king_safety_weights;
     heuristic_score.weights.pawn_structure_weights = pawn_structure_weights;
     heuristic_score.weights.square_control_weights = square_control_weights;
+    heuristic_score.weights.game_phase = game_phase;
     return heuristic_score;
 }
