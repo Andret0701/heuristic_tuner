@@ -10,18 +10,21 @@ QuiescenceResult quiescence(BoardState *board_state,
                             double seconds)
 {
     if (has_timed_out(start, seconds))
-        return (QuiescenceResult){0, INVALID};
+    {
+        HeuristicWeights heuristic_weights = {0};
+        return (QuiescenceResult){0, heuristic_weights, INVALID};
+    }
 
     // 1) Stand-pat
-    double stand_pat = score_board(board_state, depth, false).score;
-    double best_score = stand_pat;
+    HeuristicScore stand_pat = get_heuristic_score(board_state);
+    HeuristicScore best_score = stand_pat;
 
     // 2) β-cutoff on stand-pat
-    if (stand_pat >= beta)
-        return (QuiescenceResult){stand_pat, VALID};
+    if (stand_pat.score >= beta)
+        return (QuiescenceResult){stand_pat.score, stand_pat.weights, VALID};
 
-    if (stand_pat > alpha)
-        alpha = stand_pat;
+    if (stand_pat.score > alpha)
+        alpha = stand_pat.score;
 
     // 4) Recurse on captures
     uint16_t base = stack->count;
@@ -35,24 +38,22 @@ QuiescenceResult quiescence(BoardState *board_state,
         if (quiescence_result.valid == INVALID)
         {
             stack->count = base;
-            return (QuiescenceResult){0, INVALID};
+            return (QuiescenceResult){0, stand_pat.weights, INVALID};
         }
 
-        double score = quiescence_result.score;
-
-        if (score >= beta)
+        if (quiescence_result.score >= beta)
         {
             stack->count = base;
-            return (QuiescenceResult){score, VALID};
+            return (QuiescenceResult){quiescence_result.score, quiescence_result.heuristic_weights, VALID};
         }
 
-        if (score > best_score)
-            best_score = score;
+        if (quiescence_result.score > best_score.score)
+            best_score = (HeuristicScore){quiescence_result.score, quiescence_result.heuristic_weights};
 
-        if (score > alpha)
-            alpha = score;
+        if (quiescence_result.score > alpha)
+            alpha = quiescence_result.score;
     }
 
     stack->count = base;
-    return (QuiescenceResult){best_score, VALID};
+    return (QuiescenceResult){best_score.score, best_score.weights, VALID};
 }

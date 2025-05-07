@@ -1,7 +1,7 @@
 #pragma once
 
 #include "board_score.h"
-
+#include "heuristic/heuristic.h"
 typedef enum
 {
     INVALID,
@@ -11,12 +11,14 @@ typedef enum
 typedef struct
 {
     BoardScore board_score;
+    HeuristicWeights heuristic_weights;
     Validity valid;
 } SearchResult;
 
 typedef struct
 {
     double score;
+    HeuristicWeights heuristic_weights;
     Validity valid;
 } QuiescenceResult;
 

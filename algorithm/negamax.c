@@ -14,15 +14,19 @@
 SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_depth, uint8_t depth, BoardScore alpha, BoardScore beta, clock_t start, double seconds)
 {
     if (has_timed_out(start, seconds))
-        return (SearchResult){(BoardScore){0, UNKNOWN, 0}, INVALID};
+    {
+        HeuristicWeights heuristic_weights = {0};
+        return (SearchResult){(BoardScore){0, UNKNOWN, 0}, heuristic_weights, INVALID};
+    }
 
     push_game_history(board_state->board);
     if (threefold_repetition() || has_50_move_rule_occurred())
     {
-        BoardScore score = score_board(board_state, depth, false);
+        HeuristicScore heuristic_score = get_heuristic_score(board_state);
+        BoardScore score = (BoardScore){heuristic_score.score, DRAW, depth};
         pop_game_history();
         score.result = DRAW;
-        return (SearchResult){score, VALID};
+        return (SearchResult){score, heuristic_score.weights, VALID};
     }
 
     uint8_t remaining_depth = max_depth - depth;
@@ -30,24 +34,6 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
     bool found_tt = false;
     TT_Entry tt_entry;
     found_tt = TT_lookup(hash, &tt_entry);
-    // if (found_tt && tt_entry.depth >= remaining_depth)
-    // {
-    //     BoardScore tt_score = {tt_entry.score, tt_entry.result, tt_entry.depth + depth};
-    //     if (tt_entry.type == EXACT)
-    //     {
-    //         pop_game_history();
-    //         return (SearchResult){tt_score, VALID};
-    //     }
-    //     // else if (tt_entry.type == LOWERBOUND)
-    //     // {
-    //     //     alpha = max_score(alpha, tt_score);
-    //     //     if (is_greater_equal_score(alpha, beta))
-    //     //     {
-    //     //         pop_game_history();
-    //     //         return (SearchResult){tt_score, VALID};
-    //     //     }
-    //     // }
-    // }
 
     if (depth >= max_depth)
     {
@@ -56,22 +42,28 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
         finished |= result != UNKNOWN;
 
         BoardScore score;
+        HeuristicWeights heuristic_weights = {0};
         if (!finished)
         {
             QuiescenceResult quiescence_result = quiescence(board_state, stack, alpha.score, beta.score, depth, start, seconds);
             if (quiescence_result.valid == INVALID)
             {
                 pop_game_history();
-                return (SearchResult){(BoardScore){0, UNKNOWN, 0}, INVALID};
+                return (SearchResult){(BoardScore){0, UNKNOWN, 0}, heuristic_weights, INVALID};
             }
+            heuristic_weights = quiescence_result.heuristic_weights;
             score = (BoardScore){quiescence_result.score, result, depth};
         }
         else
-            score = score_board(board_state, depth, finished);
+        {
+            HeuristicScore heuristic_score = get_heuristic_score(board_state);
+            heuristic_weights = heuristic_score.weights;
+            score = (BoardScore){heuristic_score.score, result, depth};
+        }
 
         pop_game_history();
         TT_store(hash, 0, score.score, result, EXACT, 0);
-        return (SearchResult){score, VALID};
+        return (SearchResult){score, heuristic_weights, VALID};
     }
 
     uint16_t base = stack->count;
@@ -82,15 +74,18 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
     finished |= result != UNKNOWN;
     if (finished)
     {
-        BoardScore score = score_board(board_state, depth, finished);
+        Result result = get_result(board_state, finished);
+        HeuristicScore heuristic_score = get_heuristic_score(board_state);
+        BoardScore score = (BoardScore){heuristic_score.score, result, depth};
         stack->count = base;
         pop_game_history();
-        return (SearchResult){score, VALID};
+        return (SearchResult){score, heuristic_score.weights, VALID};
     }
 
     sort_moves(board_state, stack, base, found_tt ? tt_entry.move : 0);
 
     BoardScore best_score = WORST_SCORE;
+    HeuristicWeights best_heuristic_weights = {0};
     uint16_t best_move = 0;
     for (uint16_t i = base; i < stack->count; i++)
     {
@@ -118,7 +113,7 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
         {
             stack->count = base;
             pop_game_history();
-            return (SearchResult){(BoardScore){0, UNKNOWN, 0}, INVALID};
+            return (SearchResult){(BoardScore){0, UNKNOWN, 0}, search_result.heuristic_weights, INVALID};
         }
 
         if (do_reduction && is_greater_score(search_result.board_score, alpha))
@@ -132,7 +127,7 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
             {
                 stack->count = base;
                 pop_game_history();
-                return (SearchResult){(BoardScore){0, UNKNOWN, 0}, INVALID};
+                return (SearchResult){(BoardScore){0, UNKNOWN, 0}, search_result.heuristic_weights, INVALID};
             }
         }
 
@@ -142,6 +137,7 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
         {
             best_score = score;
             best_move = next_board_state->move;
+            best_heuristic_weights = search_result.heuristic_weights;
         }
         alpha = max_score(alpha, score);
         if (is_greater_equal_score(alpha, beta))
@@ -149,12 +145,12 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
             stack->count = base;
             pop_game_history();
             TT_store(hash, remaining_depth, best_score.score, result, LOWERBOUND, best_move);
-            return (SearchResult){best_score, VALID};
+            return (SearchResult){best_score, best_heuristic_weights, VALID};
         }
     }
 
     stack->count = base;
     pop_game_history();
     TT_store(hash, remaining_depth, best_score.score, result, EXACT, best_move);
-    return (SearchResult){best_score, VALID};
+    return (SearchResult){best_score, best_heuristic_weights, VALID};
 }

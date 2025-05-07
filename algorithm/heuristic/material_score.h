@@ -35,7 +35,7 @@ typedef struct
     double bishop_pair;
 } MaterialWeights;
 
-const MaterialWeights DEFAULT_MIDDLEGAME_MATERIAL_WEIGHTS = {
+static const MaterialWeights DEFAULT_MIDDLEGAME_MATERIAL_WEIGHTS = {
     .center_pawn = 100.0,
     .bishop_pawn = 95.0,
     .knight_pawn = 85.0,
@@ -48,7 +48,7 @@ const MaterialWeights DEFAULT_MIDDLEGAME_MATERIAL_WEIGHTS = {
     .additional_queen = 900.0,
     .bishop_pair = 30.0};
 
-const MaterialWeights DEFAULT_ENDGAME_MATERIAL_WEIGHTS = {
+static const MaterialWeights DEFAULT_ENDGAME_MATERIAL_WEIGHTS = {
     .center_pawn = 100.0,
     .bishop_pawn = 100.0,
     .knight_pawn = 100.0,

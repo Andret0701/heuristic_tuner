@@ -1,9 +1,4 @@
 #include "heuristic.h"
-#include "position_score.h"
-#include "material_score.h"
-#include "king_safety_score.h"
-#include "pawn_structure_score.h"
-#include "square_control.h"
 #include "../../utils/bitboard.h"
 
 bool has_insufficient_material(Board *board)
@@ -81,10 +76,9 @@ double get_game_phase(Board *board)
     return 1.0 - ((double)phase / MAX_PHASE);
 }
 
-BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
+HeuristicScore get_heuristic_score(BoardState *board_state)
 {
     double score = 0;
-    Result result = get_result(board_state, is_finished);
     double game_phase = get_game_phase(&board_state->board);
 
     // Material counting
@@ -94,7 +88,7 @@ BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
                                       DEFAULT_ENDGAME_MATERIAL_WEIGHTS, game_phase);
 
     // Positional scoring. This must be fixed
-    // PieceSquareWeights piece_square_weights = get_piece_square_weights(&board_state->board);
+    PieceSquareWeights piece_square_weights = get_piece_square_weights(&board_state->board);
     score += calculate_piece_square_score_fast(&board_state->board,
                                                DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS,
                                                DEFAULT_ENDGAME_PIECE_SQUARE_WEIGHTS, game_phase);
@@ -112,9 +106,17 @@ BoardScore score_board(BoardState *board_state, uint8_t depth, bool is_finished)
                                             DEFAULT_ENDGAME_PAWN_STRUCTURE_WEIGHTS, game_phase);
 
     // Square control scoring
-    score += get_square_control(board_state);
+    SquareControlWeights square_control_weights = get_square_control_weights(board_state);
+    score += calculate_square_control_score(square_control_weights,
+                                            DEFAULT_MIDDLEGAME_SQUARE_CONTROL_WEIGHTS,
+                                            DEFAULT_ENDGAME_SQUARE_CONTROL_WEIGHTS, game_phase);
 
-    if (board_state->board.side_to_move == BLACK)
-        score = -score;
-    return (BoardScore){score, result, depth};
+    HeuristicScore heuristic_score = {0};
+    heuristic_score.score = score;
+    heuristic_score.weights.material_weights = material_weights;
+    heuristic_score.weights.piece_square_weights = piece_square_weights;
+    heuristic_score.weights.king_safety_weights = king_safety_weights;
+    heuristic_score.weights.pawn_structure_weights = pawn_structure_weights;
+    heuristic_score.weights.square_control_weights = square_control_weights;
+    return heuristic_score;
 }
