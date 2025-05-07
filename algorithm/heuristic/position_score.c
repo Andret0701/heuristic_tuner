@@ -39,6 +39,30 @@ SquareWeights get_piece_count(uint64_t white_pieces, uint64_t black_pieces)
     return square_weights;
 }
 
+double get_piece_score(uint64_t white_pieces, uint64_t black_pieces, SquareWeights middlegame_weights,
+                       SquareWeights endgame_weights, double game_phase)
+{
+    double score = 0;
+    double *middlegame_fields = (double *)&middlegame_weights;
+    double *endgame_fields = (double *)&endgame_weights;
+    while (white_pieces)
+    {
+        int square = __builtin_ctzll(white_pieces);
+        white_pieces &= white_pieces - 1;
+        score += middlegame_fields[square] * (1 - game_phase) + endgame_fields[square] * game_phase;
+    }
+
+    black_pieces = flip_bitboard(black_pieces);
+    while (black_pieces)
+    {
+        int square = __builtin_ctzll(black_pieces);
+        black_pieces &= black_pieces - 1;
+        score -= middlegame_fields[square] * (1 - game_phase) + endgame_fields[square] * game_phase;
+    }
+
+    return score;
+}
+
 PieceSquareWeights get_piece_square_weights(Board *board)
 {
     PieceSquareWeights piece_square_weights = {0};
@@ -165,6 +189,25 @@ double calculate_piece_square_score(PieceSquareWeights params, PieceSquareWeight
     score += calculate_square_score(params.queen, middlegame_weights.queen, endgame_weights.queen, game_phase);
     score += calculate_square_score(params.king, middlegame_weights.king, endgame_weights.king, game_phase);
 
+    return score;
+}
+
+double calculate_piece_square_score_fast(const Board *board, PieceSquareWeights middlegame_weights,
+                                         PieceSquareWeights endgame_weights, double game_phase)
+{
+    double score = 0;
+    score += get_piece_score(board->white_pieces.pawns, board->black_pieces.pawns, middlegame_weights.pawn,
+                             endgame_weights.pawn, game_phase);
+    score += get_piece_score(board->white_pieces.knights, board->black_pieces.knights, middlegame_weights.knight,
+                             endgame_weights.knight, game_phase);
+    score += get_piece_score(board->white_pieces.bishops, board->black_pieces.bishops, middlegame_weights.bishop,
+                             endgame_weights.bishop, game_phase);
+    score += get_piece_score(board->white_pieces.rooks, board->black_pieces.rooks, middlegame_weights.rook,
+                             endgame_weights.rook, game_phase);
+    score += get_piece_score(board->white_pieces.queens, board->black_pieces.queens, middlegame_weights.queen,
+                             endgame_weights.queen, game_phase);
+    score += get_piece_score(board->white_pieces.king, board->black_pieces.king, middlegame_weights.king,
+                             endgame_weights.king, game_phase);
     return score;
 }
 

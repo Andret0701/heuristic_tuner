@@ -96,3 +96,5 @@ void init_default_piece_square_weights();
 PieceSquareWeights get_piece_square_weights(Board *board);
 double calculate_piece_square_score(PieceSquareWeights params, PieceSquareWeights middlegame_weights,
                                     PieceSquareWeights endgame_weights, double game_phase);
+double calculate_piece_square_score_fast(const Board *board, PieceSquareWeights middlegame_weights,
+                                         PieceSquareWeights endgame_weights, double game_phase);
