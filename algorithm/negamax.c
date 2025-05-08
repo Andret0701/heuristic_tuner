@@ -37,23 +37,23 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
 
         BoardScore score;
         HeuristicWeights heuristic_weights = {0};
-        if (!finished)
-        {
-            QuiescenceResult quiescence_result = quiescence(board_state, stack, alpha.score, beta.score, depth);
-            if (quiescence_result.valid == INVALID)
-            {
-                pop_game_history();
-                return (SearchResult){(BoardScore){0, UNKNOWN, 0}, heuristic_weights, INVALID};
-            }
-            heuristic_weights = quiescence_result.heuristic_weights;
-            score = (BoardScore){quiescence_result.score, result, depth};
-        }
-        else
-        {
-            HeuristicScore heuristic_score = get_heuristic_score(board_state);
-            heuristic_weights = heuristic_score.weights;
-            score = (BoardScore){heuristic_score.score, result, depth};
-        }
+        // if (!finished)
+        // {
+        //     QuiescenceResult quiescence_result = quiescence(board_state, stack, alpha.score, beta.score, depth);
+        //     if (quiescence_result.valid == INVALID)
+        //     {
+        //         pop_game_history();
+        //         return (SearchResult){(BoardScore){0, UNKNOWN, 0}, heuristic_weights, INVALID};
+        //     }
+        //     heuristic_weights = quiescence_result.heuristic_weights;
+        //     score = (BoardScore){quiescence_result.score, result, depth};
+        // }
+        // else
+        // {
+        HeuristicScore heuristic_score = get_heuristic_score(board_state);
+        heuristic_weights = heuristic_score.weights;
+        score = (BoardScore){heuristic_score.score, result, depth};
+        // }
 
         pop_game_history();
         TT_store(hash, 0, score.score, result, EXACT, 0);
@@ -85,45 +85,8 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
     {
         BoardState *next_board_state = &stack->boards[i];
 
-        // Classify the move
-        bool is_capture = is_move_capture(board_state, next_board_state);
-        bool is_promo = is_move_promotion(board_state, next_board_state);
-        bool is_check = is_move_check(next_board_state);
-        bool is_quiet = !is_capture && !is_promo && !is_check;
-        bool is_threatening_promo = is_move_threatening_promotion(board_state, next_board_state);
-
-        int reduction = 0;
-        bool do_reduction = is_quiet && (i >= base + 2) && (depth >= 3);
-        if (do_reduction)
-            reduction = 1; // Reduce depth by 1
-
-        int extension = 0;
-        if (is_check || is_threatening_promo)
-            extension = 1; // Extend depth by 1
-
-        SearchResult search_result = negamax(next_board_state, stack, (max_depth + extension) - reduction, depth + 1, invert_score(beta), invert_score(alpha));
+        SearchResult search_result = negamax(next_board_state, stack, max_depth, depth + 1, invert_score(beta), invert_score(alpha));
         search_result.board_score = invert_score(search_result.board_score);
-        if (search_result.valid == INVALID)
-        {
-            stack->count = base;
-            pop_game_history();
-            return (SearchResult){(BoardScore){0, UNKNOWN, 0}, search_result.heuristic_weights, INVALID};
-        }
-
-        if (do_reduction && is_greater_score(search_result.board_score, alpha))
-        {
-            // If the score is greater than or equal to beta, we can reduce the depth
-            search_result = negamax(
-                next_board_state, stack, max_depth + extension, depth + 1,
-                invert_score(beta), invert_score(alpha));
-            search_result.board_score = invert_score(search_result.board_score);
-            if (search_result.valid == INVALID)
-            {
-                stack->count = base;
-                pop_game_history();
-                return (SearchResult){(BoardScore){0, UNKNOWN, 0}, search_result.heuristic_weights, INVALID};
-            }
-        }
 
         BoardScore score = search_result.board_score;
 
