@@ -30,6 +30,9 @@ typedef struct
 
 bool has_insufficient_material(Board *board);
 Result get_result(BoardState *board_state, bool is_finished);
+
+void set_heuristic_weights(HeuristicWeights middlegame_weights,
+                           HeuristicWeights endgame_weights);
 HeuristicScore get_heuristic_score(BoardState *board_state);
 double calculate_heuristic_score(HeuristicWeights params, HeuristicWeights middlegame_weights,
                                  HeuristicWeights endgame_weights);

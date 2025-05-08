@@ -2,4 +2,10 @@
 
 #include <stdint.h>
 
-void play_game(uint8_t search_depth);
+typedef struct
+{
+    HeuristicScore *heuristic_scores;
+    uint8_t game_length;
+} GameHistory;
+
+void tune();
