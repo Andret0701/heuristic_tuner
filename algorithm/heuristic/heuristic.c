@@ -124,6 +124,39 @@ HeuristicScore get_heuristic_score(BoardState *board_state)
 
     return heuristic_score;
 }
+double calculate_heuristic_score(HeuristicWeights params, HeuristicWeights middlegame_weights,
+                                 HeuristicWeights endgame_weights)
+{
+    double game_phase = params.game_phase;
+    double score = 0;
+
+    // Material
+    score += calculate_material_score(params.material_weights,
+                                      middlegame_weights.material_weights,
+                                      endgame_weights.material_weights, game_phase);
+
+    // Piece square
+    score += calculate_piece_square_score(params.piece_square_weights,
+                                          middlegame_weights.piece_square_weights,
+                                          endgame_weights.piece_square_weights, game_phase);
+
+    // King safety
+    score += calculate_king_safety_score(params.king_safety_weights,
+                                         middlegame_weights.king_safety_weights,
+                                         endgame_weights.king_safety_weights, game_phase);
+
+    // Pawn structure
+    score += calculate_pawn_structure_score(params.pawn_structure_weights,
+                                            middlegame_weights.pawn_structure_weights,
+                                            endgame_weights.pawn_structure_weights, game_phase);
+
+    // Square control
+    score += calculate_square_control_score(params.square_control_weights,
+                                            middlegame_weights.square_control_weights,
+                                            endgame_weights.square_control_weights, game_phase);
+
+    return score;
+}
 
 void print_heuristic_weights(HeuristicWeights weights)
 {
@@ -166,4 +199,28 @@ void print_heuristic_weights(HeuristicWeights weights)
 
     // printf("\nSquare control weights:\n");
     // print_square_control_weight(weights.square_control_weights.bishop, "bishop");
+}
+
+HeuristicWeights get_default_middlegame_heuristic_weights()
+{
+    HeuristicWeights weights = {0};
+    weights.material_weights = DEFAULT_MIDDLEGAME_MATERIAL_WEIGHTS;
+    weights.piece_square_weights = DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS;
+    weights.king_safety_weights = DEFAULT_MIDDLEGAME_KING_SAFETY_WEIGHTS;
+    weights.pawn_structure_weights = DEFAULT_MIDDLEGAME_PAWN_STRUCTURE_WEIGHTS;
+    weights.square_control_weights = DEFAULT_MIDDLEGAME_SQUARE_CONTROL_WEIGHTS;
+    weights.game_phase = 0.5; // Default game phase for middlegame
+    return weights;
+}
+
+HeuristicWeights get_default_endgame_heuristic_weights()
+{
+    HeuristicWeights weights = {0};
+    weights.material_weights = DEFAULT_ENDGAME_MATERIAL_WEIGHTS;
+    weights.piece_square_weights = DEFAULT_ENDGAME_PIECE_SQUARE_WEIGHTS;
+    weights.king_safety_weights = DEFAULT_ENDGAME_KING_SAFETY_WEIGHTS;
+    weights.pawn_structure_weights = DEFAULT_ENDGAME_PAWN_STRUCTURE_WEIGHTS;
+    weights.square_control_weights = DEFAULT_ENDGAME_SQUARE_CONTROL_WEIGHTS;
+    weights.game_phase = 1.0; // Default game phase for endgame
+    return weights;
 }

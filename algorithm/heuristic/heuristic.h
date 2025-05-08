@@ -31,4 +31,8 @@ typedef struct
 bool has_insufficient_material(Board *board);
 Result get_result(BoardState *board_state, bool is_finished);
 HeuristicScore get_heuristic_score(BoardState *board_state);
+double calculate_heuristic_score(HeuristicWeights params, HeuristicWeights middlegame_weights,
+                                 HeuristicWeights endgame_weights);
 void print_heuristic_weights(HeuristicWeights weights);
+HeuristicWeights get_default_middlegame_heuristic_weights();
+HeuristicWeights get_default_endgame_heuristic_weights();
