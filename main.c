@@ -32,7 +32,7 @@ int main()
     init_zobrist_keys();
     init_default_piece_square_weights();
 
-    tune();
+    tune(0.001);
 
     return 0;
 }

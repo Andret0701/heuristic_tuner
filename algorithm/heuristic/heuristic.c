@@ -176,18 +176,52 @@ void print_heuristic_weights(HeuristicWeights weights)
     printf(" King:\n");
     print_square_weights(weights.piece_square_weights.king);
 
-    // printf("\nKing safety weights:\n");
-    // print_castling_weights(weights.king_safety_weights.castling_weights);
-    // print_pawn_shelter_weights(weights.king_safety_weights.pawn_shelter_weights);
-    // print_attacking_king_squares_weights(weights.king_safety_weights.attacking_king_squares_weights);
+    printf("\nKing safety weights:\n");
+    printf(" Castle:\n");
+    printf("  Kingside: %f\n", weights.king_safety_weights.castling_weights.kingside);
+    printf("  Queenside: %f\n", weights.king_safety_weights.castling_weights.queenside);
+    printf("  Both sides: %f\n", weights.king_safety_weights.castling_weights.both_sides);
+    printf("  Has castled kingside: %f\n", weights.king_safety_weights.castling_weights.has_castled_kingside);
+    printf("  Has castled queenside: %f\n", weights.king_safety_weights.castling_weights.has_castled_queenside);
 
-    // printf("\nPawn structure weights:\n");
-    // print_passed_pawn_weights(weights.pawn_structure_weights.passed_pawn_weights);
-    // print_pawn_chain_weights(weights.pawn_structure_weights.pawn_chain_weights);
-    // print_bishop_blocking_pawn_weight(weights.pawn_structure_weights.bishop_block_weights);
+    printf("\n Pawn shelter weights:\n");
+    printf("  Front pawn: %f\n", weights.king_safety_weights.pawn_shelter_weights.front_pawn);
+    printf("  Ahead pawn: %f\n", weights.king_safety_weights.pawn_shelter_weights.ahead_pawn);
+    printf("  Left pawn: %f\n", weights.king_safety_weights.pawn_shelter_weights.left_pawn);
+    printf("  Right pawn: %f\n", weights.king_safety_weights.pawn_shelter_weights.right_pawn);
 
-    // printf("\nSquare control weights:\n");
-    // print_square_control_weight(weights.square_control_weights.bishop, "bishop");
+    printf("\n Attacking king squares weights:\n");
+    printf("  One square: %f\n", weights.king_safety_weights.attacking_king_squares_weights.one_square);
+    printf("  Two squares: %f\n", weights.king_safety_weights.attacking_king_squares_weights.two_squares);
+    printf("  Three squares: %f\n", weights.king_safety_weights.attacking_king_squares_weights.three_squares);
+    printf("  Four squares: %f\n", weights.king_safety_weights.attacking_king_squares_weights.four_squares);
+    printf("  Five squares: %f\n", weights.king_safety_weights.attacking_king_squares_weights.five_squares);
+    printf("  Six squares: %f\n", weights.king_safety_weights.attacking_king_squares_weights.six_squares);
+    printf("  Seven squares: %f\n", weights.king_safety_weights.attacking_king_squares_weights.seven_squares);
+    printf("  Eight squares: %f\n", weights.king_safety_weights.attacking_king_squares_weights.eight_squares);
+
+    printf("\nPawn structure weights:\n");
+    printf(" Passed pawn weights:\n");
+    printf("  One square left: %f\n", weights.pawn_structure_weights.passed_pawn_weights.one_square_left);
+    printf("  Two squares left: %f\n", weights.pawn_structure_weights.passed_pawn_weights.two_squares_left);
+    printf("  Three squares left: %f\n", weights.pawn_structure_weights.passed_pawn_weights.three_squares_left);
+    printf("  Four squares left: %f\n", weights.pawn_structure_weights.passed_pawn_weights.four_squares_left);
+    printf("  Five squares left: %f\n", weights.pawn_structure_weights.passed_pawn_weights.five_squares_left);
+    printf("  Six squares left: %f\n", weights.pawn_structure_weights.passed_pawn_weights.six_squares_left);
+    printf(" Pawn chain weights:\n");
+    printf("  Protected pawn: %f\n", weights.pawn_structure_weights.pawn_chain_weights.protected_pawn);
+    printf("  Protected by protected pawn: %f\n", weights.pawn_structure_weights.pawn_chain_weights.protected_by_protected_pawn);
+    printf(" Bishop blocking pawn weights:\n");
+    printf("  Friendly pawn: %f\n", weights.pawn_structure_weights.bishop_block_weights.friendly_pawn);
+    printf("  Enemy pawn: %f\n", weights.pawn_structure_weights.bishop_block_weights.enemy_pawn);
+    printf(" Double pawn weights: %f\n", weights.pawn_structure_weights.double_pawn_weights);
+    printf(" Isolated pawn weights: %f\n", weights.pawn_structure_weights.isolated_pawn_weights);
+    printf(" Backward pawn weights: %f\n", weights.pawn_structure_weights.backward_pawn_weights);
+
+    printf("\nSquare control weights:\n");
+    printf(" Bishop square control weight: %f\n", weights.square_control_weights.bishop);
+    printf(" Rook square control weight: %f\n", weights.square_control_weights.rook);
+    printf(" Queen square control weight: %f\n", weights.square_control_weights.queen);
 }
 
 HeuristicWeights get_default_middlegame_heuristic_weights()
