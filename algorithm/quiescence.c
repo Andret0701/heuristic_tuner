@@ -5,16 +5,8 @@ QuiescenceResult quiescence(BoardState *board_state,
                             BoardStack *stack,
                             double alpha,
                             double beta,
-                            uint8_t depth,
-                            clock_t start,
-                            double seconds)
+                            uint8_t depth)
 {
-    if (has_timed_out(start, seconds))
-    {
-        HeuristicWeights heuristic_weights = {0};
-        return (QuiescenceResult){0, heuristic_weights, INVALID};
-    }
-
     // 1) Stand-pat
     HeuristicScore stand_pat = get_heuristic_score(board_state);
     HeuristicScore best_score = stand_pat;
@@ -33,7 +25,7 @@ QuiescenceResult quiescence(BoardState *board_state,
     for (uint16_t i = base; i < stack->count; i++)
     {
         BoardState *child = &stack->boards[i];
-        QuiescenceResult quiescence_result = quiescence(child, stack, -beta, -alpha, depth + 1, start, seconds);
+        QuiescenceResult quiescence_result = quiescence(child, stack, -beta, -alpha, depth + 1);
         quiescence_result.score = -quiescence_result.score;
         if (quiescence_result.valid == INVALID)
         {

@@ -11,14 +11,8 @@
 #include "transposition_table.h"
 #include "zobrist_hash.h"
 
-SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_depth, uint8_t depth, BoardScore alpha, BoardScore beta, clock_t start, double seconds)
+SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_depth, uint8_t depth, BoardScore alpha, BoardScore beta)
 {
-    if (has_timed_out(start, seconds))
-    {
-        HeuristicWeights heuristic_weights = {0};
-        return (SearchResult){(BoardScore){0, UNKNOWN, 0}, heuristic_weights, INVALID};
-    }
-
     push_game_history(board_state->board);
     if (threefold_repetition() || has_50_move_rule_occurred())
     {
@@ -45,7 +39,7 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
         HeuristicWeights heuristic_weights = {0};
         if (!finished)
         {
-            QuiescenceResult quiescence_result = quiescence(board_state, stack, alpha.score, beta.score, depth, start, seconds);
+            QuiescenceResult quiescence_result = quiescence(board_state, stack, alpha.score, beta.score, depth);
             if (quiescence_result.valid == INVALID)
             {
                 pop_game_history();
@@ -107,7 +101,7 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
         if (is_check || is_threatening_promo)
             extension = 1; // Extend depth by 1
 
-        SearchResult search_result = negamax(next_board_state, stack, (max_depth + extension) - reduction, depth + 1, invert_score(beta), invert_score(alpha), start, seconds);
+        SearchResult search_result = negamax(next_board_state, stack, (max_depth + extension) - reduction, depth + 1, invert_score(beta), invert_score(alpha));
         search_result.board_score = invert_score(search_result.board_score);
         if (search_result.valid == INVALID)
         {
@@ -121,7 +115,7 @@ SearchResult negamax(BoardState *board_state, BoardStack *stack, uint8_t max_dep
             // If the score is greater than or equal to beta, we can reduce the depth
             search_result = negamax(
                 next_board_state, stack, max_depth + extension, depth + 1,
-                invert_score(beta), invert_score(alpha), start, seconds);
+                invert_score(beta), invert_score(alpha));
             search_result.board_score = invert_score(search_result.board_score);
             if (search_result.valid == INVALID)
             {

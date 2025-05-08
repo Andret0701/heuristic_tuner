@@ -11,6 +11,4 @@ QuiescenceResult quiescence(BoardState *board_state,
                             BoardStack *stack,
                             double alpha,
                             double beta,
-                            uint8_t depth,
-                            clock_t start,
-                            double seconds);
+                            uint8_t depth);

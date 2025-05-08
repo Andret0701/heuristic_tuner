@@ -25,7 +25,7 @@ void print_bot_result(BotResult result)
 
 BoardScore move_scores[MAX_DEPTH][MAX_MOVES];
 HeuristicWeights heuristic_weights[MAX_DEPTH][MAX_MOVES];
-void print_out_search_info(BoardStack *stack, Board *board, BoardState *best_board, BoardScore best_score, uint8_t depth, uint16_t cancelled_index, double seconds)
+void print_out_search_info(BoardStack *stack, Board *board, BoardState *best_board, BoardScore best_score, uint8_t depth, uint16_t cancelled_index)
 {
     FILE *file = fopen("search_info.txt", "a");
     if (file == NULL)
@@ -47,7 +47,6 @@ void print_out_search_info(BoardStack *stack, Board *board, BoardState *best_boa
     if (best_board->black_check)
         fprintf(file, "Black is in check\n");
     fprintf(file, "It is %s's turn\n", board->side_to_move == WHITE ? "White" : "Black");
-    fprintf(file, "Time: %.2f seconds\n", seconds);
     fprintf(file, "The best move is %s with a score of %f, depth of %d, and result %s\n",
             board_to_move(board, &best_board->board),
             best_score.score,
@@ -93,41 +92,6 @@ void print_out_search_info(BoardStack *stack, Board *board, BoardState *best_boa
     fclose(file);
 }
 
-double get_time_allocation(BotFlags flags, Color side_to_move)
-{
-    // If movestogo is 0, assume a default number of moves (e.g., 40 moves remaining in sudden death)
-    if (flags.movestogo <= 0)
-        flags.movestogo = 40;
-
-    // Base minimal time allocation (in seconds) to avoid zero-time moves
-    double base_time = 0.05; // Adjust as needed
-
-    // Choose the appropriate values based on side to move
-    double remaining_time = (side_to_move == WHITE) ? flags.wtime : flags.btime;
-    double increment = (side_to_move == WHITE) ? flags.winc : flags.binc;
-
-    // Convert remaining time and increment from milliseconds to seconds
-    remaining_time /= 1000.0;
-    increment /= 1000.0;
-
-    // Calculate an initial allocation:
-    // Divide remaining time evenly among moves left, then add half of the increment
-    double time_per_move = remaining_time / flags.movestogo;
-    double allocated_time = time_per_move + (increment * 0.7);
-
-    // Avoid spending too much on one move:
-    // For example, cap the allocation to 20% of the total remaining time.
-    double max_allocation = remaining_time * 0.2;
-    if (allocated_time > max_allocation)
-        allocated_time = max_allocation;
-
-    // Ensure a minimum time usage even if remaining time is very low
-    if (allocated_time < base_time)
-        allocated_time = base_time;
-
-    return allocated_time;
-}
-
 void updated_best_board(BoardState **best_board, BoardScore *best_score, HeuristicWeights *best_heuristic_weights, BoardState *current_board_state, BoardScore score, HeuristicWeights heuristic_weights)
 {
     if (is_greater_score(score, *best_score))
@@ -138,11 +102,9 @@ void updated_best_board(BoardState **best_board, BoardScore *best_score, Heurist
     }
 }
 
-BotResult run_bot(BotFlags flags, Board board)
+BotResult run_bot(uint8_t search_depth, Board board)
 {
     TT_clear_generation();
-    clock_t start = clock();
-    double seconds = get_time_allocation(flags, board.side_to_move);
     BoardState board_state = board_to_board_state(&board);
 
     BoardStack *stack = create_board_stack(BOARD_STACK_SIZE);
@@ -165,32 +127,8 @@ BotResult run_bot(BotFlags flags, Board board)
             }
 
             BoardState *current_board_state = &stack->boards[i];
-            SearchResult search_result = negamax(current_board_state, stack, depth, 0, WORST_SCORE, invert_score(best_score), start, seconds);
+            SearchResult search_result = negamax(current_board_state, stack, depth, 0, WORST_SCORE, invert_score(best_score));
             search_result.board_score = invert_score(search_result.board_score);
-            if (search_result.valid == INVALID)
-            {
-                if (best_board == NULL)
-                {
-                    best_board = &stack->boards[0];
-                    if (depth != 0)
-                    {
-                        best_score = move_scores[depth - 1][0];
-                        best_heuristic_weights = heuristic_weights[depth - 1][0];
-                    }
-                }
-
-                // print_heuristic_weights(best_heuristic_weights);
-                // printf("\n");
-
-                print_out_search_info(stack, &board, best_board, best_score, depth, i, seconds);
-                if (i == 0)
-                    depth--;
-
-                BotResult result = {board_to_move(&board, &best_board->board), best_score, best_heuristic_weights, depth};
-                destroy_board_stack(stack);
-                return result;
-            }
-
             BoardScore score = search_result.board_score;
             move_scores[depth][i] = score;
             heuristic_weights[depth][i] = search_result.heuristic_weights;
@@ -199,7 +137,7 @@ BotResult run_bot(BotFlags flags, Board board)
             // If the move is winning. Do not search deeper.
             if (best_score.result == WON && best_score.depth <= depth)
             {
-                print_out_search_info(stack, &board, best_board, best_score, depth, i + 1, seconds);
+                print_out_search_info(stack, &board, best_board, best_score, depth, i + 1);
                 BotResult result = {board_to_move(&board, &best_board->board), best_score, best_heuristic_weights, depth};
                 destroy_board_stack(stack);
                 return result;
@@ -235,25 +173,6 @@ BotResult run_bot(BotFlags flags, Board board)
                 }
             }
         }
-        // // if only one move is not lost
-        // uint16_t num_not_lost = 0;
-        // uint16_t last_not_lost = 0;
-        // for (uint16_t i = 0; i < stack->count; i++)
-        // {
-        //     if (!has_lost(move_scores[depth][i].result, board.side_to_move))
-        //     {
-        //         num_not_lost++;
-        //         last_not_lost = i;
-        //     }
-        // }
-        // if (num_not_lost == 1)
-        // {
-        //     print_out_search_info(stack, &board, last_not_lost, depth, stack->count + 1, nodes_searched, seconds);
-
-        //     BotResult result = {board_to_move(&board, &stack->boards[last_not_lost].board), move_scores[depth][last_not_lost], depth};
-        //     destroy_board_stack(stack);
-        //     return result;
-        // }
 
         // if no move is unknown
         bool all_moves_known = true;
@@ -268,7 +187,7 @@ BotResult run_bot(BotFlags flags, Board board)
 
         if (all_moves_known)
         {
-            print_out_search_info(stack, &board, best_board, best_score, depth, stack->count + 1, seconds);
+            print_out_search_info(stack, &board, best_board, best_score, depth, stack->count + 1);
 
             BotResult result = {board_to_move(&board, &best_board->board), best_score, best_heuristic_weights, depth};
             destroy_board_stack(stack);
@@ -276,10 +195,10 @@ BotResult run_bot(BotFlags flags, Board board)
         }
 
         depth++;
-        if (depth == MAX_DEPTH)
+        if (depth == MAX_DEPTH || depth > search_depth)
         {
-            print_out_search_info(stack, &board, best_board, best_score, depth, stack->count + 1, seconds);
-            BotResult result = {board_to_move(&board, &best_board->board), best_score, best_heuristic_weights, depth};
+            print_out_search_info(stack, &board, best_board, best_score, depth - 1, stack->count + 1);
+            BotResult result = {board_to_move(&board, &best_board->board), best_score, best_heuristic_weights, depth - 1};
             destroy_board_stack(stack);
             return result;
         }
