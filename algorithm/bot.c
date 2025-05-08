@@ -24,6 +24,7 @@ void print_bot_result(BotResult result)
 }
 
 BoardScore move_scores[MAX_DEPTH][MAX_MOVES];
+HeuristicWeights heuristic_weights[MAX_DEPTH][MAX_MOVES];
 void print_out_search_info(BoardStack *stack, Board *board, BoardState *best_board, BoardScore best_score, uint8_t depth, uint16_t cancelled_index, double seconds)
 {
     FILE *file = fopen("search_info.txt", "a");
@@ -127,12 +128,13 @@ double get_time_allocation(BotFlags flags, Color side_to_move)
     return allocated_time;
 }
 
-void updated_best_board(BoardState **best_board, BoardScore *best_score, BoardState *current_board_state, BoardScore score)
+void updated_best_board(BoardState **best_board, BoardScore *best_score, HeuristicWeights *best_heuristic_weights, BoardState *current_board_state, BoardScore score, HeuristicWeights heuristic_weights)
 {
     if (is_greater_score(score, *best_score))
     {
         *best_board = current_board_state;
         *best_score = score;
+        *best_heuristic_weights = heuristic_weights;
     }
 }
 
@@ -151,12 +153,14 @@ BotResult run_bot(BotFlags flags, Board board)
     {
         BoardScore best_score = WORST_SCORE;
         BoardState *best_board = NULL;
+        HeuristicWeights best_heuristic_weights = {0};
         for (uint16_t i = 0; i < stack->count; i++)
         {
             if (depth != 0 && move_scores[depth - 1][i].result == LOST)
             {
                 move_scores[depth][i] = move_scores[depth - 1][i];
-                updated_best_board(&best_board, &best_score, &stack->boards[i], move_scores[depth][i]);
+                heuristic_weights[depth][i] = heuristic_weights[depth - 1][i];
+                updated_best_board(&best_board, &best_score, &best_heuristic_weights, &stack->boards[i], move_scores[depth][i], heuristic_weights[depth][i]);
                 continue;
             }
 
@@ -169,27 +173,34 @@ BotResult run_bot(BotFlags flags, Board board)
                 {
                     best_board = &stack->boards[0];
                     if (depth != 0)
+                    {
                         best_score = move_scores[depth - 1][0];
+                        best_heuristic_weights = heuristic_weights[depth - 1][0];
+                    }
                 }
+
+                // print_heuristic_weights(best_heuristic_weights);
+                // printf("\n");
 
                 print_out_search_info(stack, &board, best_board, best_score, depth, i, seconds);
                 if (i == 0)
                     depth--;
 
-                BotResult result = {board_to_move(&board, &best_board->board), best_score, depth};
+                BotResult result = {board_to_move(&board, &best_board->board), best_score, best_heuristic_weights, depth};
                 destroy_board_stack(stack);
                 return result;
             }
 
             BoardScore score = search_result.board_score;
             move_scores[depth][i] = score;
-            updated_best_board(&best_board, &best_score, current_board_state, score);
+            heuristic_weights[depth][i] = search_result.heuristic_weights;
+            updated_best_board(&best_board, &best_score, &best_heuristic_weights, current_board_state, score, search_result.heuristic_weights);
 
             // If the move is winning. Do not search deeper.
             if (best_score.result == WON && best_score.depth <= depth)
             {
                 print_out_search_info(stack, &board, best_board, best_score, depth, i + 1, seconds);
-                BotResult result = {board_to_move(&board, &best_board->board), best_score, depth};
+                BotResult result = {board_to_move(&board, &best_board->board), best_score, best_heuristic_weights, depth};
                 destroy_board_stack(stack);
                 return result;
             }
@@ -216,6 +227,10 @@ BotResult run_bot(BotFlags flags, Board board)
                         BoardScore temp_score = move_scores[d][i];
                         move_scores[d][i] = move_scores[d][j];
                         move_scores[d][j] = temp_score;
+
+                        HeuristicWeights temp_weights = heuristic_weights[d][i];
+                        heuristic_weights[d][i] = heuristic_weights[d][j];
+                        heuristic_weights[d][j] = temp_weights;
                     }
                 }
             }
@@ -255,7 +270,7 @@ BotResult run_bot(BotFlags flags, Board board)
         {
             print_out_search_info(stack, &board, best_board, best_score, depth, stack->count + 1, seconds);
 
-            BotResult result = {board_to_move(&board, &best_board->board), best_score, depth};
+            BotResult result = {board_to_move(&board, &best_board->board), best_score, best_heuristic_weights, depth};
             destroy_board_stack(stack);
             return result;
         }
@@ -264,7 +279,7 @@ BotResult run_bot(BotFlags flags, Board board)
         if (depth == MAX_DEPTH)
         {
             print_out_search_info(stack, &board, best_board, best_score, depth, stack->count + 1, seconds);
-            BotResult result = {board_to_move(&board, &best_board->board), best_score, depth};
+            BotResult result = {board_to_move(&board, &best_board->board), best_score, best_heuristic_weights, depth};
             destroy_board_stack(stack);
             return result;
         }

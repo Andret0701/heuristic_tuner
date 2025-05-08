@@ -92,6 +92,7 @@ typedef struct
 PieceSquareWeights DEFAULT_MIDDLEGAME_PIECE_SQUARE_WEIGHTS;
 PieceSquareWeights DEFAULT_ENDGAME_PIECE_SQUARE_WEIGHTS;
 
+void print_square_weights(SquareWeights square_weights);
 void init_default_piece_square_weights();
 PieceSquareWeights get_piece_square_weights(Board *board);
 double calculate_piece_square_score(PieceSquareWeights params, PieceSquareWeights middlegame_weights,

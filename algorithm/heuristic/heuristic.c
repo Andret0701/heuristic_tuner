@@ -119,9 +119,51 @@ HeuristicScore get_heuristic_score(BoardState *board_state)
     heuristic_score.weights.pawn_structure_weights = pawn_structure_weights;
     heuristic_score.weights.square_control_weights = square_control_weights;
     heuristic_score.weights.game_phase = game_phase;
-
     if (board_state->board.side_to_move == BLACK)
         heuristic_score.score = -heuristic_score.score;
 
     return heuristic_score;
+}
+
+void print_heuristic_weights(HeuristicWeights weights)
+{
+    printf("Material weights:\n");
+    printf("Center pawn: %f\n", weights.material_weights.center_pawn);
+    printf("Bishop pawn: %f\n", weights.material_weights.bishop_pawn);
+    printf("Knight pawn: %f\n", weights.material_weights.knight_pawn);
+    printf("Rook pawn: %f\n", weights.material_weights.rook_pawn);
+    printf("Knight: %f\n", weights.material_weights.knight);
+    printf("Bishop: %f\n", weights.material_weights.bishop);
+    printf("First rook: %f\n", weights.material_weights.first_rook);
+    printf("Additional rook: %f\n", weights.material_weights.additional_rook);
+    printf("First queen: %f\n", weights.material_weights.first_queen);
+    printf("Additional queen: %f\n", weights.material_weights.additional_queen);
+    printf("Bishop pair: %f\n", weights.material_weights.bishop_pair);
+
+    printf("\nPiece square weights:\n");
+    printf(" Pawn:\n");
+    print_square_weights(weights.piece_square_weights.pawn);
+    printf(" Knight:\n");
+    print_square_weights(weights.piece_square_weights.knight);
+    printf(" Bishop:\n");
+    print_square_weights(weights.piece_square_weights.bishop);
+    printf(" Rook:\n");
+    print_square_weights(weights.piece_square_weights.rook);
+    printf(" Queen:\n");
+    print_square_weights(weights.piece_square_weights.queen);
+    printf(" King:\n");
+    print_square_weights(weights.piece_square_weights.king);
+
+    // printf("\nKing safety weights:\n");
+    // print_castling_weights(weights.king_safety_weights.castling_weights);
+    // print_pawn_shelter_weights(weights.king_safety_weights.pawn_shelter_weights);
+    // print_attacking_king_squares_weights(weights.king_safety_weights.attacking_king_squares_weights);
+
+    // printf("\nPawn structure weights:\n");
+    // print_passed_pawn_weights(weights.pawn_structure_weights.passed_pawn_weights);
+    // print_pawn_chain_weights(weights.pawn_structure_weights.pawn_chain_weights);
+    // print_bishop_blocking_pawn_weight(weights.pawn_structure_weights.bishop_block_weights);
+
+    // printf("\nSquare control weights:\n");
+    // print_square_control_weight(weights.square_control_weights.bishop, "bishop");
 }

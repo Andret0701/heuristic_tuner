@@ -31,3 +31,4 @@ typedef struct
 bool has_insufficient_material(Board *board);
 Result get_result(BoardState *board_state, bool is_finished);
 HeuristicScore get_heuristic_score(BoardState *board_state);
+void print_heuristic_weights(HeuristicWeights weights);

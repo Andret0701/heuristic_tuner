@@ -1,10 +1,12 @@
 #pragma once
 #include "board_score.h"
+#include "heuristic/heuristic.h"
 
 typedef struct
 {
     char *move;
     BoardScore score;
+    HeuristicWeights heuristic_weights;
     uint8_t depth;
 } BotResult;
 
